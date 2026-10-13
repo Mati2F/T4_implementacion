@@ -1,0 +1,165 @@
+services:
+  users:
+    build: ./users
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./users/app:/app/app
+    environment:
+      MONGODB_URL: mongodb://users-mongodb:27017
+    depends_on:
+      - users-mongodb
+    networks:
+      - microsvcs
+
+  channels:
+    build: ./channels
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./channels/app:/app/app
+    environment:
+      MONGODB_URL: mongodb://channels-mongodb:27017
+    depends_on:
+      - channels-mongodb
+    networks:
+      - microsvcs
+
+  messages:
+    build: ./messages
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./messages/app:/app/app
+    environment:
+      USERS_URL: http://users:8000
+      CHANNELS_URL: http://channels:8000
+      MONGODB_URL: mongodb://messages-mongodb:27017
+    depends_on:
+      - users
+      - channels
+      - messages-mongodb
+    networks:
+      - microsvcs
+
+  scheduled-messages-api:
+    build: ./scheduled-messages
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    ports:
+      - "8004:8000"
+    environment: &scheduled-environment
+      MONGODB_URL: mongodb://scheduled-messages-mongodb:27017
+      USERS_URL: http://users:8000
+      CHANNELS_URL: http://channels:8000
+      MESSAGES_URL: http://messages:8000
+      RABBITMQ_URL: amqp://chat:chat@rabbitmq:5672/%2F
+      SCHEDULER_INTERVAL_SECONDS: "2"
+      RETRY_DELAY_SECONDS: "10"
+      MAX_DISPATCH_ATTEMPTS: "3"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      scheduled-messages-mongodb:
+        condition: service_started
+      users:
+        condition: service_started
+      channels:
+        condition: service_started
+    networks:
+      - microsvcs
+
+  scheduled-messages-scheduler:
+    build: ./scheduled-messages
+    command:
+      - python
+      - -m
+      - app.scheduler
+    environment: *scheduled-environment
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      scheduled-messages-mongodb:
+        condition: service_started
+    networks:
+      - microsvcs
+
+  scheduled-messages-dispatcher:
+    build: ./scheduled-messages
+    command:
+      - python
+      - -m
+      - app.dispatcher
+    environment: *scheduled-environment
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      scheduled-messages-mongodb:
+        condition: service_started
+      messages:
+        condition: service_started
+    networks:
+      - microsvcs
+
+  users-mongodb:
+    image: mongo:7
+    volumes:
+      - users-data:/data/db
+    networks:
+      - microsvcs
+
+  channels-mongodb:
+    image: mongo:7
+    volumes:
+      - channels-data:/data/db
+    networks:
+      - microsvcs
+
+  messages-mongodb:
+    image: mongo:7
+    volumes:
+      - messages-data:/data/db
+    networks:
+      - microsvcs
+
+  scheduled-messages-mongodb:
+    image: mongo:7
+    volumes:
+      - scheduled-messages-data:/data/db
+    networks:
+      - microsvcs
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: chat
+      RABBITMQ_DEFAULT_PASS: chat
+    healthcheck:
+      test:
+        - CMD
+        - rabbitmq-diagnostics
+        - -q
+        - ping
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - microsvcs
+
+volumes:
+  users-data:
+  channels-data:
+  messages-data:
+  scheduled-messages-data:
+
+networks:
+  microsvcs:
+    name: microsvcs
