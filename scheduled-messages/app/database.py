@@ -1,5 +1,4 @@
 from pymongo import ASCENDING, MongoClient
-
 from app.config import MONGODB_URL
 
 

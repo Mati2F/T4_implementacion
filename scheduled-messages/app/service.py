@@ -4,10 +4,6 @@ from uuid import uuid4
 from pymongo import ReturnDocument
 
 from app.database import schedules
-from app.dependencies import (
-    validate_channel,
-    validate_user
-)
 from app.errors import (
     InvalidScheduledTime,
     ScheduleCannotBeCancelled,
@@ -36,9 +32,6 @@ def create_schedule(body) -> dict:
 
     if scheduled_for <= now:
         raise InvalidScheduledTime()
-
-    validate_user(body.author_id)
-    validate_channel(body.channel_id)
 
     schedule = {
         "id": str(uuid4()),
