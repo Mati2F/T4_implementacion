@@ -1,6 +1,6 @@
 # Microservicio de mensajes programados
 
-Este repositorio extiende el sistema base de chat con la capacidad de **programar mensajes para que sean enviados automáticamente en una fecha y hora futura**.
+Este repositorio extiende el sistema base de chat con la capacidad de **programar mensajes para que sean enviados automáticamente en una fecha y hora futura**. La implementación funciona como un proyecto independiente y requiere que el [demo de la Unidad 3](https://github.com/rmasad/microservicios/tree/main/03_Comunicaci%C3%B3n/demo) esté levantado previamente.
 
 La solución mantiene separadas las responsabilidades: el nuevo microservicio administra la programación y sus estados, mientras que el servicio base `messages` continúa siendo el único responsable de crear y almacenar los mensajes del chat. La integración se realiza exclusivamente mediante las APIs y eventos publicados; el microservicio no accede a las bases de datos internas de `users`, `channels` ni `messages`.
 
@@ -10,7 +10,7 @@ En equipos distribuidos, una persona puede redactar un aviso, recordatorio o seg
 
 El servicio permite:
 
-- Crear una programación para un usuario y canal existentes.
+- Crear una programación utilizando los identificadores de un usuario y un canal del chat base.
 - Consultar una programación y su estado.
 - Listar programaciones por autor o estado.
 - Cancelar una programación que todavía no haya sido procesada.
@@ -22,26 +22,34 @@ El servicio permite:
 
 El microservicio `scheduled-messages` se ejecuta mediante tres procesos independientes que comparten la misma base de datos:
 
-- **API REST:** recibe, valida, consulta y cancela programaciones.
+- **API REST:** recibe, valida el formato, consulta y cancela programaciones.
 - **Scheduler:** detecta periódicamente las programaciones cuya hora ya llegó y solicita su despacho.
 - **Dispatcher:** consume las solicitudes desde RabbitMQ y utiliza la API REST de `messages` para publicar el mensaje en el chat.
 
 ```mermaid
 flowchart LR
-    Client[Cliente / Swagger UI] -->|HTTP REST| API[Scheduled Messages API]
-    API -->|Valida usuarios| Users[Users API]
-    API -->|Valida canales| Channels[Channels API]
-    API <--> DB[(Scheduled Messages MongoDB)]
+    Client[Cliente / Swagger UI]
 
-    Scheduler[Scheduler] -->|Busca programaciones vencidas| DB
-    Scheduler -->|Publica dispatch-requested| Rabbit[(RabbitMQ)]
-    Rabbit -->|Consume evento| Dispatcher[Dispatcher]
-    Dispatcher <--> DB
-    Dispatcher -->|POST mensaje| Messages[Messages API]
+    subgraph Extension[Este repositorio: mensajes programados]
+        API[Scheduled Messages API] <--> DB[(Scheduled Messages MongoDB)]
+        Scheduler[Scheduler] -->|Busca programaciones vencidas| DB
+        Scheduler -->|Publica dispatch-requested| Rabbit[(RabbitMQ)]
+        Rabbit -->|Consume evento| Dispatcher[Dispatcher]
+        Dispatcher <--> DB
+    end
 
-    Users --> UsersDB[(Users MongoDB)]
-    Channels --> ChannelsDB[(Channels MongoDB)]
-    Messages --> MessagesDB[(Messages MongoDB)]
+    subgraph Base[Demo externo de la Unidad 3]
+        Users[Users API]
+        Channels[Channels API]
+        Messages[Messages API]
+        Messages -->|Valida autor| Users
+        Messages -->|Valida canal| Channels
+    end
+
+    Client -->|Crea usuario| Users
+    Client -->|Crea canal| Channels
+    Client -->|HTTP REST| API
+    Dispatcher -->|POST mensaje| Messages
 ```
 
 ### Patrones de comunicación
@@ -49,11 +57,10 @@ flowchart LR
 | Comunicación | Patrón | Motivo |
 |---|---|---|
 | Cliente → Scheduled Messages API | REST síncrono | El cliente necesita confirmación inmediata de la operación. |
-| Scheduled Messages API → Users API | REST síncrono | Valida que el autor exista antes de aceptar la programación. |
-| Scheduled Messages API → Channels API | REST síncrono | Valida que el canal exista antes de aceptar la programación. |
 | Scheduler → RabbitMQ | Evento asíncrono | El vencimiento de una programación no bloquea la API ni depende de un cliente conectado. |
 | RabbitMQ → Dispatcher | Consumidor asíncrono | Desacopla la detección de la hora del envío efectivo. |
-| Dispatcher → Messages API | REST síncrono | `messages` no consume eventos y su contrato público para crear mensajes es HTTP. |
+| Dispatcher → Messages API del demo | REST síncrono | `messages` no consume eventos y su contrato público para crear mensajes es HTTP. |
+| Messages API → Users y Channels API | REST síncrono | El servicio base valida el autor y el canal al crear el mensaje definitivo. |
 
 Esta es una integración **híbrida**: el procesamiento interno de las programaciones es asíncrono, pero la creación final se realiza a través del contrato REST publicado por el núcleo del chat.
 
@@ -63,24 +70,19 @@ Esta es una integración **híbrida**: el procesamiento interno de las programac
 T4_implementacion/
 ├── docker-compose.yaml
 ├── README.md
-├── users/                       # Servicio base de usuarios
-├── channels/                    # Servicio base de canales
-├── messages/                    # Servicio base de mensajes
 └── scheduled-messages/          # Nueva capacidad vertical
     ├── Dockerfile
     ├── requirements.txt
     └── app/
-        ├── main.py              # Configuración de FastAPI y manejo de errores
-        ├── api.py               # Operaciones REST versionadas
-        ├── schemas.py           # Esquemas de entrada y salida
+        ├── main.py              # API versionada, FastAPI y manejo de errores
+        ├── models.py            # Esquemas de entrada y salida
         ├── service.py           # Reglas de negocio
         ├── scheduler.py         # Detección de programaciones vencidas
         ├── dispatcher.py        # Consumo y envío de mensajes
         ├── event_bus.py         # Publicación y consumo en RabbitMQ
         ├── database.py          # Acceso a MongoDB
-        ├── dependencies.py      # Comunicación con el chat base
         ├── errors.py            # Errores del dominio
-        └── settings.py          # Configuración por variables de entorno
+        └── config.py            # Configuración por variables de entorno
 ```
 
 ## Tecnologías
@@ -89,48 +91,67 @@ T4_implementacion/
 - Pydantic para esquemas y validación.
 - MongoDB para programaciones y eventos pendientes.
 - RabbitMQ para comunicación asíncrona.
-- Docker y Docker Compose para ejecutar el sistema completo.
+- Docker y Docker Compose para ejecutar la extensión y conectarla con el demo base.
 - OpenAPI/Swagger generado automáticamente por FastAPI.
 
 ## Requisitos
 
 - Docker Desktop en ejecución.
 - Docker Compose v2, incluido en versiones actuales de Docker Desktop.
+- Git para obtener el repositorio del demo base.
 - Puertos `8001`, `8002`, `8003`, `8004`, `5672` y `15672` disponibles.
+- El [demo de la Unidad 3](https://github.com/rmasad/microservicios/tree/main/03_Comunicaci%C3%B3n/demo), que contiene `users`, `channels` y `messages`.
 
 No es necesario instalar Python, MongoDB ni RabbitMQ en el computador anfitrión.
 
 ## Ejecución
 
-Desde PowerShell, ubicarse en la raíz del repositorio y levantar todos los contenedores:
+El sistema se levanta en dos proyectos Docker Compose separados. Ambos declaran una red Docker con el nombre `microsvcs`, lo que permite que el dispatcher de esta implementación se comunique con el servicio `messages` del demo.
+
+### 1. Levantar primero el chat base
+
+Clonar el repositorio del curso, si todavía no se encuentra disponible localmente:
 
 ```powershell
-cd C:\Users\matias\Desktop\T4_implementacion
-docker compose up --build
+git clone https://github.com/rmasad/microservicios.git
 ```
 
-Para ejecutarlos en segundo plano:
+Entrar al demo de la Unidad 3 y levantarlo en segundo plano:
 
 ```powershell
+cd .\microservicios\03_Comunicación\demo
 docker compose up --build -d
+docker compose ps
 ```
 
-Comprobar el estado de los contenedores:
+Antes de continuar, comprobar que las APIs estén disponibles en los puertos `8001`, `8002` y `8003`.
+
+### 2. Levantar mensajes programados
+
+En otra ventana de PowerShell, ubicarse en la raíz de este repositorio:
 
 ```powershell
+cd C:\ruta\al\repositorio\T4_implementacion
+docker compose up --build -d
 docker compose ps
+```
+
+Para observar la ejecución en primer plano se puede omitir `-d`:
+
+```powershell
+docker compose up --build
 ```
 
 ## Servicios disponibles
 
 | Servicio | Dirección |
 |---|---|
-| Users - Swagger UI | http://localhost:8001/docs |
-| Channels - Swagger UI | http://localhost:8002/docs |
-| Messages - Swagger UI | http://localhost:8003/docs |
-| Scheduled Messages - Swagger UI | http://localhost:8004/docs |
-| Scheduled Messages - OpenAPI JSON | http://localhost:8004/openapi.json |
-| RabbitMQ Management | http://localhost:15672 |
+| Users del demo externo - Swagger UI | http://localhost:8001/docs |
+| Channels del demo externo - Swagger UI | http://localhost:8002/docs |
+| Messages del demo externo - Swagger UI | http://localhost:8003/docs |
+| Scheduled Messages de este repositorio - Swagger UI | http://localhost:8004/docs |
+| Scheduled Messages de este repositorio - OpenAPI JSON | http://localhost:8004/openapi.json |
+| RabbitMQ de este repositorio - Management | http://localhost:15672 |
 
 Las credenciales de RabbitMQ son usuario `chat` y contraseña `chat`.
 
@@ -151,7 +172,9 @@ La documentación interactiva, los esquemas, ejemplos y códigos de respuesta se
 
 ### Ejemplo de creación
 
-Primero deben existir el usuario y el canal indicados. La fecha debe incluir zona horaria y encontrarse en el futuro.
+Primero deben crearse el usuario y el canal mediante las APIs del demo externo. La fecha debe incluir zona horaria y encontrarse en el futuro.
+
+La API de mensajes programados registra los identificadores recibidos sin consultar previamente `users` ni `channels`. Cuando llega la hora, el servicio `messages` del demo valida ambas referencias antes de crear el mensaje definitivo. Si un identificador no existe, la programación termina en estado `failed` y registra el error en `last_error`.
 
 ```json
 {
@@ -211,7 +234,7 @@ El servicio usa el exchange durable `chat`, de tipo `topic`. Los eventos de desp
 | `chat.scheduled-message.cancelled` | Se cancela una programación. |
 | `chat.scheduled-message.dispatch-requested` | Llega la hora de envío y el scheduler solicita el despacho. |
 | `chat.scheduled-message.processing` | El dispatcher comienza un intento. |
-| `chat.scheduled-message.retrying` | Se programa un reintento por un fallo transitorio. |
+| `chat.scheduled-message.retry-scheduled` | Se programa un reintento por un fallo transitorio. |
 | `chat.scheduled-message.sent` | `messages` acepta y crea el mensaje. |
 | `chat.scheduled-message.failed` | La entrega falla definitivamente. |
 
@@ -221,9 +244,9 @@ Ejemplo conceptual de un evento:
 
 ```json
 {
-  "event_id": "UUID_DEL_EVENTO",
-  "event_type": "chat.scheduled-message.created",
-  "aggregate_id": "ID_DE_LA_PROGRAMACION",
+  "id": "UUID_DEL_EVENTO",
+  "type": "chat.scheduled-message.created",
+  "subject_id": "ID_DE_LA_PROGRAMACION",
   "occurred_at": "2026-10-12T21:20:00Z",
   "data": {
     "status": "pending"
@@ -241,30 +264,32 @@ La API responde errores en formato JSON consistente. Entre los casos contemplado
 |---|---|
 | `404 Not Found` | La programación solicitada no existe. |
 | `409 Conflict` | La programación ya no se encuentra en un estado cancelable. |
-| `422 Unprocessable Entity` | Datos inválidos, fecha no futura, usuario inexistente o canal inexistente. |
-| `503 Service Unavailable` | No se puede validar una dependencia del chat base. |
+| `422 Unprocessable Entity` | El cuerpo no cumple el esquema o la fecha indicada no es futura. |
 
 FastAPI también expone en OpenAPI los esquemas de entrada, salida y validación.
 
+Los errores producidos durante el despacho no se devuelven como respuesta de la creación original, porque el envío ocurre asíncronamente. Se reflejan mediante los estados `retrying` o `failed` y el campo `last_error` de la programación.
+
 ## Flujo de prueba de punta a punta
 
-Este flujo sirve tanto para comprobar la implementación como para grabar una demostración.
+Este flujo sirve para comprobar la implementación:
 
-1. Levantar el sistema con `docker compose up --build`.
-2. Abrir `http://localhost:8001/docs` y crear un usuario con `POST /api/v1/users`. Guardar el `id` retornado.
-3. Abrir `http://localhost:8002/docs` y crear un canal con `POST /api/v1/channels`. Utilizar el usuario cuando el contrato lo solicite y guardar el `id` del canal.
-4. Abrir `http://localhost:8004/docs` y ejecutar `POST /api/v1/scheduled-messages` con los identificadores anteriores y una hora aproximadamente uno o dos minutos en el futuro.
-5. Consultar `GET /api/v1/scheduled-messages/{schedule_id}`. Inicialmente debe aparecer como `pending`.
-6. Esperar hasta la hora configurada y repetir la consulta. El estado debe terminar en `sent` y contener un `message_id`.
-7. Abrir `http://localhost:8003/docs` y consultar los mensajes del canal para comprobar que el contenido fue publicado.
-8. Ejecutar `GET /api/v1/events` para mostrar los eventos generados durante el flujo.
-9. Opcionalmente, abrir RabbitMQ Management en `http://localhost:15672` para mostrar el exchange y la cola.
+1. Levantar primero el Compose del demo de la Unidad 3 y comprobar sus tres APIs.
+2. Levantar después el Compose de este repositorio.
+3. Abrir `http://localhost:8001/docs` y crear un usuario con `POST /api/v1/users`. Guardar el `id` retornado.
+4. Abrir `http://localhost:8002/docs` y crear un canal con `POST /api/v1/channels`. Guardar el `id` del canal.
+5. Abrir `http://localhost:8004/docs` y ejecutar `POST /api/v1/scheduled-messages` con los identificadores anteriores y una hora aproximadamente uno o dos minutos en el futuro.
+6. Consultar `GET /api/v1/scheduled-messages/{schedule_id}`. Inicialmente debe aparecer como `pending`.
+7. Esperar hasta la hora configurada y repetir la consulta. El estado debe terminar en `sent` y contener un `message_id`.
+8. Abrir `http://localhost:8003/docs` y consultar los mensajes del canal para comprobar que el contenido fue publicado por el demo base.
+9. Ejecutar `GET /api/v1/events` en `http://localhost:8004/docs` para mostrar los eventos generados durante el flujo.
+10. Opcionalmente, abrir RabbitMQ Management en `http://localhost:15672` para mostrar el exchange y la cola.
 
 Para demostrar la cancelación, crear una segunda programación con una hora posterior, ejecutar su operación `DELETE` y comprobar que queda en estado `cancelled` y no se publica en el canal.
 
 ## Logs y diagnóstico
 
-Ver los registros de todos los servicios:
+Ver los registros de los componentes incluidos en este repositorio:
 
 ```powershell
 docker compose logs -f
@@ -278,7 +303,7 @@ docker compose logs -f scheduled-messages-api scheduled-messages-scheduler sched
 
 ## Detener el sistema
 
-Detener y retirar los contenedores, conservando los datos:
+Cada proyecto Compose se detiene desde su propia carpeta. Para detener mensajes programados y conservar sus datos:
 
 ```powershell
 docker compose down
@@ -292,9 +317,13 @@ docker compose down -v
 
 > **Advertencia:** la opción `-v` elimina los datos almacenados por los contenedores.
 
+Para detener también `users`, `channels` y `messages`, entrar posteriormente a la carpeta `03_Comunicación/demo` y ejecutar allí `docker compose down`. Sus volúmenes solo se eliminan si se agrega expresamente la opción `-v`.
+
 ## Decisiones y consideraciones
 
 - `scheduled-messages` posee su propia base de datos y no comparte colecciones con el chat base.
+- El chat base no forma parte de este repositorio: se ejecuta desde el demo de la Unidad 3 y ambos Compose comparten la red Docker `microsvcs`.
+- La API conserva los identificadores de autor y canal; el servicio `messages` del demo los valida cuando se intenta efectuar el envío.
 - La fecha se recibe con zona horaria y se normaliza para evitar ambigüedades.
 - El scheduler consulta programaciones vencidas cada dos segundos.
 - El dispatcher procesa un mensaje a la vez por consumidor y confirma el evento después de manejarlo.
@@ -302,16 +331,4 @@ docker compose down -v
 - La actualización atómica del estado evita que dos procesos reclamen la misma programación al mismo tiempo.
 - RabbitMQ entrega eventos al menos una vez. El control de estado reduce el riesgo de procesamiento duplicado.
 - La operación final depende de la disponibilidad y del contrato público del servicio `messages`.
-
-## Publicación en GitHub
-
-El repositorio debe publicarse sin credenciales, archivos de entorno privados ni datos sensibles. Después de revisar los cambios, el archivo puede agregarse con:
-
-```powershell
-git add README.md
-git commit -m "docs: agrega documentacion del microservicio"
-git push
-```
-
-Si todavía no existe un repositorio remoto, se puede crear uno público desde GitHub y asociarlo siguiendo las instrucciones que entrega la plataforma.
 
