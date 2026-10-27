@@ -1,0 +1,34 @@
+name: Publicar imagen Docker
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesion en GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: ./scheduled-messages
+          push: true
+          tags: |
+            ghcr.io/mati2f/scheduled-messages:latest
+            ghcr.io/mati2f/scheduled-messages:${{ github.sha }}
