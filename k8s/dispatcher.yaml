@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduled-messages-dispatcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scheduled-messages-dispatcher
+  template:
+    metadata:
+      labels:
+        app: scheduled-messages-dispatcher
+    spec:
+      containers:
+        - name: dispatcher
+          image: ghcr.io/mati2f/scheduled-messages:latest
+          imagePullPolicy: Always
+          command:
+            - python
+            - -m
+            - app.dispatcher
+          envFrom:
+            - configMapRef:
+                name: scheduled-messages-config
+          env:
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: scheduled-messages-secrets
+                  key: RABBITMQ_URL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi

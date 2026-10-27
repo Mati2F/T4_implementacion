@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scheduled-messages-config
+data:
+  MONGODB_URL: "mongodb://scheduled-messages-mongodb:27017"
+  MESSAGES_URL: "http://messages.servicios-base.svc.cluster.local:8000"
+  SCHEDULER_INTERVAL_SECONDS: "2"
+  RETRY_DELAY_SECONDS: "10"
+  MAX_DISPATCH_ATTEMPTS: "3"
