@@ -12,10 +12,21 @@ spec:
       labels:
         app: scheduled-messages-dispatcher
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: dispatcher
           image: ghcr.io/mati2f/scheduled-messages:latest
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           command:
             - python
             - -m
