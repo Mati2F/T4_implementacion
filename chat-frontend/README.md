@@ -9,16 +9,18 @@ Requisitos: Node 18+ y el gateway levantado (por defecto en `http://localhost:50
 npm install
 npm run dev          # http://localhost:5173
 ```
-Otra URL de gateway: copia `.env.example` a `.env` y cambia `VITE_GATEWAY_URL`.
+Para desarrollo sin Nginx, el cliente usa `http://localhost:5000/graphql` por defecto. Si copias `.env.example` a `.env`, cambia `VITE_GATEWAY_URL` a esa dirección antes de usar `npm run dev`.
 Build de producción: `npm run build` (queda en `dist/`).
 
 ## Con Docker
 ```bash
 docker compose up --build        # http://localhost:3000
 ```
-La URL del gateway se compila dentro del JavaScript y la usa el **navegador**, así que debe ser una dirección
-accesible desde tu máquina (por defecto `http://localhost:5000/graphql`, el puerto que publica el gateway).
-Para otra: `VITE_GATEWAY_URL=http://mi-host:5000/graphql docker compose up --build` (hay que reconstruir).
+Levanta primero el gateway y sus servicios en la red `microsvcs`. El frontend también se conecta a esa red. Por defecto se compila con `VITE_GATEWAY_URL=/graphql`: el navegador usa el mismo origen del frontend y Nginx reenvía `/graphql` y `/media/...` a `http://chat-gateway:8000`.
+
+Nginx escucha internamente en 8080, publicado como `http://localhost:3000` por Compose. Su variable `GATEWAY_UPSTREAM` se aplica al arrancar el contenedor mediante una plantilla. En cambio, `VITE_GATEWAY_URL` queda compilada en el JavaScript: cambiarla requiere reconstruir la imagen. Si tienes un `.env` antiguo, cambia su valor a `/graphql` para usar el reenvío.
+
+Para probar en Kubernetes sin exposición pública, sigue [las instrucciones de despliegue](../k8s/README.md). Solo necesitas un port-forward al Service del frontend.
 
 ## Qué hace
 - **Modo claro / oscuro**: botón de luna o sol en la cabecera, disponible también antes de iniciar sesión. Usa la preferencia del sistema en la primera visita y guarda la elección en el navegador. Se aplica a toda la interfaz, incluidos diálogos, menús y notificaciones, sin dependencias adicionales.

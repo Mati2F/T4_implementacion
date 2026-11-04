@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chat-gateway-config
+  namespace: grupo-mensajes-programados
+data:
+  USERS_URL: "http://users.servicios-base.svc.cluster.local:8000"
+  CHANNELS_URL: "http://channels.servicios-base.svc.cluster.local:8000"
+  MESSAGES_URL: "http://messages.servicios-base.svc.cluster.local:8000"
+  SCHEDULED_URL: "http://scheduled-messages-api:80"
+  MEDIA_URL: "http://media.grupo-archivos-adjuntos.svc.cluster.local:8000"
+  THREADS_URL: "http://thread-api.grupo-threads.svc.cluster.local:8000"
+  REQUEST_TIMEOUT_SECONDS: "5"
+  CORS_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080"

@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-gateway
+  namespace: grupo-mensajes-programados
+spec:
+  type: ClusterIP
+  selector:
+    app: chat-gateway
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-gateway
+  namespace: grupo-mensajes-programados
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat-gateway
+  template:
+    metadata:
+      labels:
+        app: chat-gateway
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway
+          image: ghcr.io/mati2f/chat-gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: chat-gateway-config
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi

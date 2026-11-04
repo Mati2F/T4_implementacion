@@ -3,7 +3,16 @@ services:
     build:
       context: .
       args:
-        VITE_GATEWAY_URL: ${VITE_GATEWAY_URL:-http://localhost:5000/graphql}
+        VITE_GATEWAY_URL: ${VITE_GATEWAY_URL:-/graphql}
+    environment:
+      GATEWAY_UPSTREAM: http://chat-gateway:8000
     ports:
-      - "3000:80"
+      - "3000:8080"
     restart: unless-stopped
+    networks:
+      - microsvcs
+
+networks:
+  microsvcs:
+    name: microsvcs
+    external: true

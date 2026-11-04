@@ -30,7 +30,7 @@ docker compose up --build
 
 El Compose conecta el gateway a esa red existente; no levanta los servicios que consume. Para usar Threads y Media, configura `THREADS_URL` y `MEDIA_URL` con direcciones accesibles desde el contenedor del gateway. Puedes definirlas como variables de entorno antes de iniciar Compose.
 
-Las direcciones internas `*.svc.cluster.local` funcionan desde los pods del clúster; no son accesibles directamente desde un gateway ejecutado en Docker local. Para desplegar el gateway en Kubernetes, se necesita publicar su imagen y crear sus manifiestos; estos aún no están incluidos en `k8s/`.
+Las direcciones internas `*.svc.cluster.local` funcionan desde los pods del clúster; no son accesibles directamente desde un gateway ejecutado en Docker local. Los manifiestos del gateway y su ConfigMap están en `k8s/gateway.yaml` y `k8s/gateway-config.yaml`. Consulta [la guía de prueba interna](../k8s/README.md) para publicar las imágenes, aplicar solo los recursos nuevos y acceder a través del frontend con port-forward.
 
 ## Comprobación manual
 

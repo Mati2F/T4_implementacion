@@ -12,6 +12,15 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - context: ./scheduled-messages
+            image: scheduled-messages
+          - context: ./gateway
+            image: chat-gateway
+          - context: ./chat-frontend
+            image: chat-frontend
 
     steps:
       - name: Descargar repositorio
@@ -27,8 +36,8 @@ jobs:
       - name: Construir y publicar imagen
         uses: docker/build-push-action@v6
         with:
-          context: ./scheduled-messages
+          context: ${{ matrix.context }}
           push: true
           tags: |
-            ghcr.io/mati2f/scheduled-messages:latest
-            ghcr.io/mati2f/scheduled-messages:${{ github.sha }}
+            ghcr.io/mati2f/${{ matrix.image }}:latest
+            ghcr.io/mati2f/${{ matrix.image }}:${{ github.sha }}
