@@ -1,0 +1,112 @@
+scalar JSON
+scalar Upload
+
+enum AttachmentCategory {
+  IMAGE
+  DOCUMENT
+  LINK
+}
+
+type Attachment {
+  id: ID!
+  channelId: ID!
+  uploaderId: ID!
+  category: AttachmentCategory!
+  createdAt: String!
+  filename: String
+  mimeType: String
+  sizeBytes: Int
+  sha256: String
+  status: String
+  downloadUrl: String
+  uploader: User
+  channel: Channel
+}
+
+type AttachmentPage {
+  items: [Attachment!]!
+  limit: Int!
+  offset: Int!
+}
+
+enum ScheduleStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  RETRYING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+type User {
+  id: ID!
+  displayName: String!
+  scheduledMessages(status: ScheduleStatus): [ScheduledMessage!]!
+}
+
+type Channel {
+  id: ID!
+  name: String!
+  messages: [Message!]!
+}
+
+type Message {
+  id: ID!
+  content: String!
+  createdAt: String!
+  author: User
+  channel: Channel
+  replies: [Reply!]!
+}
+
+type Reply {
+  id: ID!
+  messageId: ID!
+  channelId: ID!
+  content: String!
+  createdAt: String!
+  author: User
+  channel: Channel
+  message: Message
+}
+
+type ScheduledMessage {
+  id: ID!
+  content: String!
+  scheduledFor: String!
+  status: ScheduleStatus!
+  attempts: Int!
+  channelId: ID!
+  lastError: String
+  nextAttemptAt: String
+  createdAt: String!
+  updatedAt: String!
+  author: User
+  channel: Channel
+  message: Message
+}
+
+type Query {
+  user(id: ID!): User
+  channel(id: ID!): Channel
+  channels: [Channel!]!
+  messages(channelId: ID!): [Message!]!
+  scheduledMessage(id: ID!): ScheduledMessage
+  scheduledMessages(authorId: ID, status: ScheduleStatus): [ScheduledMessage!]!
+  replies(channelId: ID!, messageId: ID!): [Reply!]!
+  attachments(channelId: ID!, userId: ID!, category: AttachmentCategory, limit: Int = 20, offset: Int = 0): AttachmentPage!
+  channelQuota(channelId: ID!, userId: ID!): JSON
+  linkPreview(url: String!, userId: ID!): JSON
+}
+
+type Mutation {
+  createUser(displayName: String!): User!
+  createChannel(name: String!): Channel!
+  sendMessage(channelId: ID!, authorId: ID!, content: String!): Message!
+  scheduleMessage(authorId: ID!, channelId: ID!, content: String!, scheduledFor: String!): ScheduledMessage!
+  cancelScheduledMessage(id: ID!): ScheduledMessage!
+  createReply(channelId: ID!, messageId: ID!, authorId: ID!, content: String!): Reply!
+  uploadAttachment(channelId: ID!, userId: ID!, file: Upload!): Attachment!
+  deleteAttachment(id: ID!, userId: ID!): Boolean!
+}

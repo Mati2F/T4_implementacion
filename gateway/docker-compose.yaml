@@ -1,0 +1,23 @@
+services:
+  chat-gateway:
+    build: .
+    ports:
+      - "5000:8000"
+    environment:
+      USERS_URL: http://users:8000
+      CHANNELS_URL: http://channels:8000
+      MESSAGES_URL: http://messages:8000
+      SCHEDULED_URL: http://scheduled-messages-api:8000
+      MEDIA_URL: ${MEDIA_URL:-http://media:8000}
+      THREADS_URL: ${THREADS_URL:-http://threads-api:8000}
+      CORS_ORIGINS: "*"
+      REQUEST_TIMEOUT_SECONDS: "5"
+    volumes:
+      - ./app:/code/app
+    networks:
+      - microsvcs
+
+networks:
+  microsvcs:
+    name: microsvcs
+    external: true

@@ -1,0 +1,6 @@
+ariadne>=1.0
+starlette>=0.37
+uvicorn>=0.30
+httpx>=0.27
+aiodataloader>=0.4
+python-multipart>=0.0.9
