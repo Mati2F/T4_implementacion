@@ -18,6 +18,7 @@ from starlette.routing import Route
 from . import config
 from .dataloaders import build_loaders
 from .upstream import call, http
+from .validation import MaxQueryDepthRule
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s:%(levelname)s:%(name)s:%(message)s")
 
@@ -304,7 +305,10 @@ app = Starlette(
     routes=[
         Route("/health", health),
         Route("/media/attachments/{attachment_id}/download", download_attachment),
-        Route("/graphql", GraphQL(schema, context_value=get_context, debug=False)),
+        Route("/graphql", GraphQL(
+            schema, context_value=get_context, debug=False,
+            validation_rules=[MaxQueryDepthRule],
+        )),
     ],
     middleware=[Middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS,
                            allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"])],

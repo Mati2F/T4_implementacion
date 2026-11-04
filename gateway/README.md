@@ -85,7 +85,9 @@ Media responde `content-disposition: attachment`: abrir la URL en una pestaña d
 > No se expusieron `GET /api/v1/events` ni `GET /api/v1/links/jobs` de media.
 
 ## Errores
+Las operaciones GraphQL tienen un máximo de **8 niveles de campos**, contando el campo raíz como nivel 1 y también los campos finales. Los fragmentos con nombre e inline se evalúan en el lugar donde se usan y no agregan un nivel por sí mismos. El límite se aplica a queries y mutations, incluidos campos de introspección. Si se supera, la operación se rechaza antes de llamar a los servicios, con `extensions.code = QUERY_DEPTH_EXCEEDED` y `maximumDepth = 8`.
+
 Los errores de los servicios en operaciones GraphQL se unifican en `errors[].extensions`: `code` (`NOT_FOUND`, `VALIDATION_ERROR`, `UPSTREAM_UNAVAILABLE` o el código propio del servicio, p. ej. `SCHEDULE_CANNOT_BE_CANCELLED`) y `status` cuando existe una respuesta HTTP del servicio. Los fallos de conexión usan `UPSTREAM_UNAVAILABLE` sin `status`. La ruta HTTP de descarga devuelve el estado HTTP del servicio; si falta el usuario responde 400 y si no puede conectar con Media responde 502.
 
 ## Estructura
-`app/schema.graphql` (contrato) · `app/main.py` (resolvers y ruta de descarga) · `app/dataloaders.py` · `app/upstream.py` · `app/config.py`
+`app/schema.graphql` (contrato) · `app/main.py` (resolvers y ruta de descarga) · `app/dataloaders.py` · `app/upstream.py` · `app/config.py` · `app/validation.py` (límite de profundidad)
