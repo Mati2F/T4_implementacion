@@ -51,6 +51,8 @@ export const LockIcon = make(
   </>
 );
 export const BackIcon = make(<path d="m15 18-6-6 6-6" />);
+export const MoonIcon = make(<path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />);
+export const SunIcon = make(<><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>);
 export const AttachmentIcon = make(<path d="m21 11-8.5 8.5a6 6 0 0 1-8.5-8.5L13 2.5a4 4 0 0 1 5.7 5.7l-8.5 8.5a2 2 0 0 1-2.8-2.8L15 6.3" />);
 export const ReplyIcon = make(<><path d="m9 10-5 4 5 4" /><path d="M4 14h10a6 6 0 0 1 6 6V5" /></>);
 export const CalendarIcon = make(

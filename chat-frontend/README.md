@@ -21,6 +21,7 @@ accesible desde tu máquina (por defecto `http://localhost:5000/graphql`, el pue
 Para otra: `VITE_GATEWAY_URL=http://mi-host:5000/graphql docker compose up --build` (hay que reconstruir).
 
 ## Qué hace
+- **Modo claro / oscuro**: botón de luna o sol en la cabecera, disponible también antes de iniciar sesión. Usa la preferencia del sistema en la primera visita y guarda la elección en el navegador. Se aplica a toda la interfaz, incluidos diálogos, menús y notificaciones, sin dependencias adicionales.
 - **Iniciar sesión** (icono arriba a la derecha): pegar un ID de usuario existente, o crear un usuario nuevo (pestaña "Crear usuario"). No es autenticación: solo indica quién escribe. El ID queda guardado en el navegador (`localStorage`) y se puede copiar desde el menú del usuario.
 - Sin sesión, canales y mensajes están bloqueados.
 - **Canales**: lista, buscador y creación de canales. Se actualiza cada 10 s.

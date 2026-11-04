@@ -1,8 +1,8 @@
-import { Avatar, Box, Button, Flex, Heading, Menu, Portal, Text } from "@chakra-ui/react";
-import { HashIcon, LoginIcon } from "../icons.jsx";
+import { Avatar, Box, Button, Flex, Heading, IconButton, Menu, Portal, Text } from "@chakra-ui/react";
+import { HashIcon, LoginIcon, MoonIcon, SunIcon } from "../icons.jsx";
 import { toaster } from "../toaster.jsx";
 
-export default function Header({ user, onLoginClick, onLogout }) {
+export default function Header({ user, onLoginClick, onLogout, colorMode, onToggleColorMode }) {
   const copyId = async () => {
     try {
       await navigator.clipboard.writeText(user.id);
@@ -19,6 +19,10 @@ export default function Header({ user, onLoginClick, onLogout }) {
         <Heading size="md">Chat</Heading>
       </Flex>
 
+      <Flex align="center" gap="2" minW="0">
+        <IconButton variant="ghost" flexShrink="0" aria-label={colorMode === "dark" ? "Activar modo claro" : "Activar modo oscuro"} title={colorMode === "dark" ? "Activar modo claro" : "Activar modo oscuro"} onClick={onToggleColorMode}>
+          {colorMode === "dark" ? <SunIcon /> : <MoonIcon />}
+        </IconButton>
       {user ? (
         <Menu.Root onSelect={(d) => (d.value === "copy" ? copyId() : d.value === "logout" && onLogout())}>
           <Menu.Trigger asChild>
@@ -26,7 +30,7 @@ export default function Header({ user, onLoginClick, onLogout }) {
               <Avatar.Root size="xs" colorPalette="blue">
                 <Avatar.Fallback name={user.displayName} />
               </Avatar.Root>
-              <Text maxW="40" truncate>{user.displayName}</Text>
+              <Text maxW={{ base: "24", md: "40" }} truncate>{user.displayName}</Text>
             </Button>
           </Menu.Trigger>
           <Portal>
@@ -43,6 +47,7 @@ export default function Header({ user, onLoginClick, onLogout }) {
           <LoginIcon /> Iniciar sesión
         </Button>
       )}
+      </Flex>
     </Flex>
   );
 }

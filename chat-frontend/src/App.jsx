@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { Box, Flex } from "@chakra-ui/react";
 import { gql, Q } from "./api.js";
 import Header from "./components/Header.jsx";
@@ -27,8 +27,16 @@ function saveUser(user) {
 }
 
 export default function App() {
+  const [colorMode, setColorMode] = useState(() => document.documentElement.classList.contains("dark") ? "dark" : "light");
   const [user, setUser] = useState(loadUser);
   const [loginOpen, setLoginOpen] = useState(false);
+
+  useLayoutEffect(() => {
+    const html = document.documentElement;
+    html.classList.toggle("dark", colorMode === "dark");
+    html.classList.toggle("light", colorMode === "light");
+    try { localStorage.setItem("chat.theme", colorMode); } catch { /* se conserva durante esta sesión */ }
+  }, [colorMode]);
 
   const login = (u) => {
     setUser(u);
@@ -64,8 +72,8 @@ export default function App() {
   }, []);
 
   return (
-    <Flex direction="column" h="100dvh" bg="bg">
-      <Header user={user} onLoginClick={() => setLoginOpen(true)} onLogout={logout} />
+    <Flex direction="column" h="100dvh" bg="bg" color="fg">
+      <Header user={user} onLoginClick={() => setLoginOpen(true)} onLogout={logout} colorMode={colorMode} onToggleColorMode={() => setColorMode((mode) => mode === "dark" ? "light" : "dark")} />
       <Box flex="1" minH="0" display="flex">
         {user ? <Workspace user={user} /> : <LockedView onLoginClick={() => setLoginOpen(true)} />}
       </Box>
