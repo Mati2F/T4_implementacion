@@ -5,5 +5,4 @@ kubeconfig
 *.key
 __pycache__/
 *.pyc
-chat-frontend/
 media/

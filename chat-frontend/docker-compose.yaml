@@ -1,0 +1,9 @@
+services:
+  chat-frontend:
+    build:
+      context: .
+      args:
+        VITE_GATEWAY_URL: ${VITE_GATEWAY_URL:-http://localhost:5000/graphql}
+    ports:
+      - "3000:80"
+    restart: unless-stopped
