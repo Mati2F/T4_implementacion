@@ -29,7 +29,7 @@ Para probar en Kubernetes sin exposición pública, sigue [las instrucciones de 
 - **Canales**: lista, buscador y creación de canales. Se actualiza cada 10 s.
 - **Mensajes**: autor, hora (hora local) y contenido. Se actualizan cada 3 s (*polling*); el scroll baja solo salvo que hayas subido a leer.
 - **Enviar**: Enter envía, Shift+Enter salto de línea.
-- **Responder** (en cada mensaje): abre el mensaje principal y su hilo. Permite consultar y enviar respuestas de un solo nivel. El hilo se actualiza cada 4 s mientras está abierto; si el envío falla, conserva el texto para reintentar.
+- **Responder** (en cada mensaje): abre un campo bajo el mensaje principal. Las respuestas de un solo nivel quedan visibles debajo de ese mensaje y se actualizan junto con la conversación; si el envío falla, conserva el texto para reintentar.
 - **Archivos** (icono de clip junto al campo de mensaje o en la cabecera): permite seleccionar y subir un archivo, listar los adjuntos del canal en páginas de 20 y descargarlos. Se actualiza al abrir la ventana, cambiar de página, subir un archivo o pulsar Actualizar. Los archivos pertenecen al canal y no se vinculan a un mensaje específico.
 - **Archivos en la conversación**: se muestran junto a los mensajes por fecha, con autor, nombre, tamaño y descarga. Las imágenes tienen vista previa. Los adjuntos se actualizan cada 8 s y después de una subida; un fallo de Media no impide leer los mensajes. El historial de adjuntos se consulta por páginas de 100 para mostrarlo completo.
 - Las subidas usan GraphQL multipart con `FormData` y `fetch` del navegador. Las descargas se abren desde el gateway, que envía a Media la identificación del usuario. No se agregan dependencias.
