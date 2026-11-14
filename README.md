@@ -4,7 +4,7 @@
 
 Matias Fernandez  202273506-6 |
 Daniel Quispe     202273529-5 |
-Rafeal Baeza      202204598-1 
+Rafael Baeza      202204598-1 
 
 Este repositorio extiende el sistema base de chat con la capacidad de **programar mensajes para que sean enviados automáticamente en una fecha y hora futura**. La implementación funciona como un proyecto independiente y requiere que el [demo de la Unidad 3](https://github.com/rmasad/microservicios/tree/main/03_Comunicaci%C3%B3n/demo) esté levantado previamente.
 
