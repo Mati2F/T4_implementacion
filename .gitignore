@@ -6,3 +6,4 @@ kubeconfig
 __pycache__/
 *.pyc
 media/
+.venv/

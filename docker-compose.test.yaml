@@ -1,0 +1,30 @@
+services:
+  messages:
+    image: python:3.12-slim
+    working_dir: /app
+    command:
+      - python
+      - -c
+      - |
+        import json
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                length = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(length) or b"{}")
+                response = {
+                    "id": "msg-integracion-123",
+                    "author_id": body.get("author_id"),
+                    "content": body.get("content"),
+                }
+                payload = json.dumps(response).encode("utf-8")
+                self.send_response(201)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+        HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+    networks:
+      - microsvcs

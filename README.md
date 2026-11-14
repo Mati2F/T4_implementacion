@@ -338,3 +338,48 @@ Para detener también `users`, `channels` y `messages`, entrar posteriormente a 
 - RabbitMQ entrega eventos al menos una vez. El control de estado reduce el riesgo de procesamiento duplicado.
 - La operación final depende de la disponibilidad y del contrato público del servicio `messages`.
 
+## Pruebas automatizadas (QA)
+
+### Estructura de las pruebas
+
+```text
+scheduled-messages/tests/
+├── conftest.py                  # Fixture de aislamiento de BD en memoria (mongomock) y mock de RabbitMQ
+├── test_service_endpoints.py    # 2 pruebas por cada endpoint REST (caso exitoso + caso de error)
+├── test_contract_messages.py    # Pruebas de contrato con el servicio base `messages` y eventos publicados
+└── test_integration_compose.py  # Prueba de integración de punta a punta con `users`, `channels` y `messages`
+```
+
+### 1. Preparar el entorno local
+
+Ubicarse en la carpeta `scheduled-messages`, crear un entorno virtual e instalar las dependencias:
+
+```bash
+cd scheduled-messages
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. Ejecutar pruebas de servicio y de contrato (sin contenedores)
+
+Estas pruebas se ejecutan completamente aisladas de la base de datos real y de RabbitMQ, por lo que no requieren que Docker esté corriendo:
+
+```bash
+cd scheduled-messages
+python -m pytest tests/test_service_endpoints.py tests/test_contract_messages.py -v
+```
+
+### 3. Ejecutar prueba de integración con Docker Compose
+
+Desde la raíz del repositorio (`T4_implementacion`), levantar el sistema junto con `docker-compose.test.yaml` (que levanta contenedores ligeros compatibles para `users`, `channels` y `messages` en la red `microsvcs`):
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.test.yaml up --build -d
+
+cd scheduled-messages
+RUN_COMPOSE_TESTS=1 python -m pytest tests/test_integration_compose.py -v
+
+cd ..
+docker compose -f docker-compose.yaml -f docker-compose.test.yaml down -v
+```

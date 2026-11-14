@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+from pymongo.errors import PyMongoError
+from app.errors import DependencyUnavailable, DomainError
 
 from fastapi import (
     FastAPI,
@@ -88,8 +90,10 @@ async def handle_validation_error(
     summary="Comprobar disponibilidad"
 )
 def health():
-    client.admin.command("ping")
-
+    try:
+        client.admin.command("ping")
+    except PyMongoError as exc:
+        raise DependencyUnavailable("mongodb") from exc
     return {"status": "ok"}
 
 
@@ -154,9 +158,12 @@ def delete_scheduled_message(schedule_id: str):
     response_model=list[EventResponse],
     summary="Explorar eventos"
 )
-def find_events():
+def find_events(
+    limit: int = Query(default=100, ge=1, le=500)
+):
     return list(
         events
         .find({}, {"_id": 0})
         .sort("occurred_at", -1)
+        .limit(limit)
     )
